@@ -30,6 +30,7 @@ def load_spikes(
     dataset_num: int,
     root_folder: str | Path | None = None,
     load_waveforms: bool = False,
+    lfps: nap.TsdFrame | None = None,
 ) -> nap.TsGroup:
     """Load spike times into a TsGroup with metadata."""
     base_path = _get_base_path(dataset_num, root_folder)
@@ -40,10 +41,14 @@ def load_spikes(
         kwargs = dict(waveforms=np.load(base_path / "waveforms.npy"))
     else:
         kwargs = {}
+    if lfps is not None:
+        ep = nap.IntervalSet(0, lfps.t[-1])
+    else:
+        ep = nap.IntervalSet(0, max(spike_times))
     spikes = nap.Tsd(
         spike_times,
         clusters,
-        time_support=nap.IntervalSet(0, max(spike_times))
+        time_support=ep
     ).to_tsgroup()
     spikes.set_info(**brain_area, **kwargs)
     # Safety check that brain area order and unit order is matching
