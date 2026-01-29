@@ -36,6 +36,12 @@ def load_spikes(dataset_num: int, root_folder: str | Path | None = None, load_wa
         kwargs = {}
     spikes = nap.Tsd(spike_times, clusters).to_tsgroup()
     spikes.set_info(**brain_area, **kwargs)
+    # Safety check that brain area order and unit order is matching
+    # should be ordered already...
+    if np.any(spikes.cluster_id != spikes.index):
+        raise ValueError(
+            "Fix load_spikes by sorting `brain_area['cluster_id']` to match `spike.index`"
+        )
     return spikes
 
 def load_lfp(dataset_num: int, root_folder: str | Path | None = None, fs_hz=500, electrode_spacing_um=20) -> nap.TsdFrame:
