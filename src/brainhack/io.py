@@ -42,7 +42,7 @@ def load_spikes(
     else:
         kwargs = {}
     if lfps is not None:
-        ep = nap.IntervalSet(0, lfps.t[-1])
+        ep = lfps.time_support
     else:
         ep = nap.IntervalSet(0, max(spike_times))
     spikes = nap.Tsd(
