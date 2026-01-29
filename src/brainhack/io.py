@@ -40,7 +40,11 @@ def load_spikes(
         kwargs = dict(waveforms=np.load(base_path / "waveforms.npy"))
     else:
         kwargs = {}
-    spikes = nap.Tsd(spike_times, clusters).to_tsgroup()
+    spikes = nap.Tsd(
+        spike_times,
+        clusters,
+        time_support=nap.IntervalSet(0, max(spike_times))
+    ).to_tsgroup()
     spikes.set_info(**brain_area, **kwargs)
     # Safety check that brain area order and unit order is matching
     # should be ordered already...
