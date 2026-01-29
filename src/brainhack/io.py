@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pynapple as nap
 import pandas as pd
+import re
 
 from brainhack.config import config
 
@@ -23,15 +24,18 @@ def load_trials(dataset_num:int, root_folder: str | Path | None = None) -> nap.I
     return trials
 
 
-def load_spikes(dataset_num: int, root_folder: str | Path | None = None) -> nap.TsGroup:
+def load_spikes(dataset_num: int, root_folder: str | Path | None = None, load_waveforms:bool=False) -> nap.TsGroup:
     """Load spike times into a TsGroup with metadata."""
     base_path = _get_base_path(dataset_num, root_folder)
     spike_times = np.load(base_path / "spikes.npy")
     clusters = np.load(base_path / "clusters.npy")
     brain_area = np.load(base_path / "brain_area.npy", allow_pickle=True).item()
-    waveforms = np.load(base_path / "waveforms.npy")
+    if load_waveforms:
+        kwargs = dict(waveforms = np.load(base_path / "waveforms.npy"))
+    else:
+        kwargs = {}
     spikes = nap.Tsd(spike_times, clusters).to_tsgroup()
-    spikes.set_info(**brain_area, waveforms=waveforms)
+    spikes.set_info(**brain_area, **kwargs)
     return spikes
 
 def load_lfp(dataset_num: int, root_folder: str | Path | None = None, fs_hz=500, electrode_spacing_um=20) -> nap.TsdFrame:
@@ -40,7 +44,14 @@ def load_lfp(dataset_num: int, root_folder: str | Path | None = None, fs_hz=500,
         np.load(file_path)
         for file_path in sorted(base_path.glob("*lfp*.npy"))
     ]
-    brain_area = np.concatenate([i*np.ones(l.shape[0]) for i, l in enumerate(lfps_per_area)])
+    # this is sorted, so should be 1,2,3 but to be sure:
+    brain_area = [
+        int(
+            re.search(r"lfp_(\d+)\.npy$", file_path.as_posix()).group(1)
+        )
+        for file_path in sorted(base_path.glob("*lfp*.npy"))
+    ]
+    brain_area = np.concatenate([i*np.ones(l.shape[0]) for i, l in zip(brain_area, lfps_per_area)])
     # referenced to first
     depth_um = np.concatenate(
         [electrode_spacing_um * np.arange(l.shape[0]) for l in lfps_per_area]
